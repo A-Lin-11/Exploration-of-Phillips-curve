@@ -1,0 +1,22 @@
+Data Source
+
+I will use the data sets from world bank with the world bank API:
+
+Unemployment, total (% of total labor force) (modeled ILO estimate)
+http://data.worldbank.org/indicator/SL.UEM.TOTL.ZS
+
+This data set provides the annual unemployment rate for all the countries and economies from year 1960 to 2016. 
+Most of the countries do not have records for the early year, and most have not reported the latest figure (2016). 
+The data are in percentage. The number of regions is 264, and the number of years is 57.
+
+Inflation, consumer prices (annual %) (1960-2015)
+http://data.worldbank.org/indicator/FP.CPI.TOTL.ZG
+
+This data set provides the annual inflation rate for all the countries and economies from year 1960 to 2016, using the CPI method. 
+Most of the countries do not have records for the early year, and most have not reported the latest figure (2016). 
+The data are also in percentage. The number of regions is 264, and the number of years is 57.
+
+These two datasets are open to use without restrictions.
+I will use the world bank API to get the json feed of the data. 
+There’s a module in python called ‘wbdata’ that is convenient in accessing the API data (https://github.com/OliverSherouse/wbdata). 
+The module can directly take in the json feed and convert them into a pandas dataframe, which is the final outcome, with the countries as rows and the years as columns.
