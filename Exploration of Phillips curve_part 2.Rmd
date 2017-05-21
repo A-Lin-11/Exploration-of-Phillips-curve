@@ -1,0 +1,214 @@
+---
+title: "Project Part B"
+author: "Andrew Jun Lin"
+date: "April 17, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1)
+library(ggplot2)
+```
+
+## Background and Motivation
+
+Economists discover that there is an inverse trade-off relationship between a country's unemployment rate and inflation rate, i.e. when unemployment rate decreases, inflation rate tends to increase.   It is known as the Phillips curve.  (Although further study suggests that it is the deviation from the expected inflation rate, not the actual inflation rate, fits the economic theory, I will still use the actual inflation rate for the purpose of this analysis.)  I will use the macroeconomics data to test this theory and see which countries faces the worst trade-off over the years.
+
+For furthur analysis, I decide to put in another index.  I will use the GDP growth rate as a proxy for productivity.  It is the marginal change of norminal GDP each year for a specific economy.  
+
+In this part of the analysis, I will choose the following 4 question to explore in detail:
+
+- Clustering of economies based on the Phillips curve slope
+- Unemployment trends across countries
+- Standard deviations in the GDP incremental rate
+- Correlations between unemployment and GDP growth
+
+
+```{r cars}
+summary(cars)
+```
+
+## Data Source
+
+The new data set is from the same source as part a: world bank
+
+GDP growth:
+http://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG
+The data set comprises of 217 rows, each representing an economy.  The data covers 50 years from 1967 to 2016.  The values uses the nomial GDP for each economy in the given year in US dollar to calculate incremental change in percentage.  It represents the change in productivity in that region.
+
+
+The other two data sets are the same as part a:
+
+Unemployment, total (% of total labor force) (modeled ILO estimate) 
+http://data.worldbank.org/indicator/SL.UEM.TOTL.ZS
+This data set provides the annual unemployment rate for all the countries and economies from year 1960 to 2016.  Most of the countries do not have records for the early year, and most have not reported the latest figure (2016).  The data are in percentage.  The number of regions is 264, and the number of years is 57.
+
+Inflation, consumer prices (annual %) (1960-2015)
+http://data.worldbank.org/indicator/FP.CPI.TOTL.ZG
+This data set provides the annual inflation rate for all the countries and economies from year 1960 to 2016, using the CPI method.  Most of the countries do not have records for the early year, and most have not reported the latest figure (2016).  The data are also in percentage.  The number of regions is 264, and the number of years is 57.
+
+The same API can be used to retrieve the data sets and convert them into Pandas Dataframes in python.  In this part of the project, I simply download the files as csv files for simplicity.
+
+## Methods 
+
+#### 1. Clustering of economies based on the Phillips curve slope
+
+In this question, I want to continue on the analysis in part a and see whether I can cluster the countries by their Phillips Curve slope.
+
+In part a, I generated a csv file containing only two column: country name and slope with the following procedures:
+
+1)	Load the data from both data sets.  
+ 
+2)	Expand the dataframe.  The returned dataframes have multiple levels of column labels.  The outer one being the overall level "unemployment rate / inflation rate", and the inner level as the year. Both dataframes are treated equally.  The dataframes use region as index and year as columns, which is not convenient for the combination later.  
+
+3)	Subsetting the dataframe.  There are a lot of missing data in both tables due to various reasons.  For example, some countries are young and did not exist back in the 1960s, or perhaps the countries was at war and economic index was unable to collect.  What's more, due to report timing, most of the countries have not reported the latest data, i.e. fiscal year 2016.  Therefore, I chose to subset both the dataset within a 20-year span, from year 1996 to 2015.  It would give an impression of how the world economy was developing recently.  
+
+4)	Dealing with missing data:  Since I'm dealing with time series data, I choose to forward fill the missing data with the last valid observation.  Most of the regions should have been filled for the 20 years.  Those that still contain missing data are dropped from the dataframe, since they are probably too insignificant for the analysis.
+
+5)	Combining.   I first find the list of regions that are still on both tables.  Then I create a new dataframe, with the year, region, unemployment rate, and inflation rate as columns.  This way all the data points are represented in the new combined data set, ordered by region and the year.   The final step is to normalize the two dimension, to reduce the range.
+
+6) Getting the Slope.  I calculated the slope of a linear regression for each region and put them into a single dataframe.
+
+
+```{r echo=FALSE}
+df_slope = read.csv('C:\\Users\\andre\\Dropbox\\UMSI\\courses\\618\\Project\\final\\final slope.csv', row.names = 1)
+head(df_slope)
+```
+
+This data frame is generated by combining the unemployment rate data set and the inflation data set and subsetting the 20 years from 1996 to 2015 and calculating the slope of a linear regression.  Missing data are forward filled.
+
+Then, using the cluster library, I try to compute and plot a hierarchical cluster analysis.
+
+
+#### 2. Unemployment trends across countries
+
+For comparison, I now try to see whether a country is experiencing a recession or boom in the labor market by looking at the unemployment trend.  I will use the combined table generated in part a and subset only the large regions so that the plot would not seem to crowded.
+
+In this part, since I only take the lastest 20 years, there are no missing values.  
+
+I then use a line plot to plot the trends of unemployment rate of the regions with ggplot.
+
+One of the problems encountered is that if I want to use time series analysis libraries I need to convert the year column into a date time type series.  
+
+```{r echo=FALSE}
+df_combined = read.csv('C:\\Users\\andre\\Dropbox\\UMSI\\courses\\618\\Project\\final\\combined.csv', row.names = 1)
+head(df_combined)
+df_combined_subset = subset(df_combined, is.element(df_combined$Country, c("Central Europe and the Baltics","East Asia & Pacific","Europe & Central Asia","Latin America & Caribbean","North America","South Asia","Euro area","World")))
+head(df_combined_subset)
+```
+
+
+#### 3. Standard deviations in the GDP incremental rate
+
+In this question I will need to use the GDP growth rate data set.
+
+The dataset loads the change rate as factors.  I need to convert them into numerics first.
+
+For this part of analysis, I will ignore the missing data, since there is no representation that can unbiasedly represent the fluctuation. 
+
+Create a new column that contains the standard deviation of that row, i.e. the GDP growth rate from 1967 to 2015.  Then drop the rows that does not have a value in that column.
+
+Then sort the table by the stadard deviation.  Subset the highest and lowest 20 into 2 tables and ase bar charts to represent the result.
+
+One challenge here is sorting the table. The level of the factor must be reset.
+
+```{r echo=FALSE}
+df_gdp = read.csv('C:\\Users\\andre\\Dropbox\\UMSI\\courses\\618\\Project\\final\\GDP.csv',na.strings = "..",sep = '\t',col.names = c("Series.Name","Series_code","Country","Country_code",1967:2016))
+df_gdp = df_gdp[,c(3:53)]
+head(df_gdp)
+
+df_gdp_sd = transform(df_gdp, SD=apply(df_gdp,1, sd, na.rm = TRUE))
+df_gdp_sd = df_gdp_sd[complete.cases(df_gdp_sd[,52]),][,c(1,52)]
+df_gdp_sd$SD = as.numeric(df_gdp_sd$SD)
+df_gdp_sd$Country = factor(df_gdp_sd$Country, levels = df_gdp_sd$Country[order(df_gdp_sd$SD)])
+df_gdp_sd = df_gdp_sd[order(-df_gdp_sd$SD),]
+df_gdp_sd_highest = df_gdp_sd[c(1:20),]
+df_gdp_sd_lowest = df_gdp_sd[c(169:188),]
+
+```
+
+#### 4. Correlations between unemployment, inflation rate, and GDP growth
+
+For this question, I will choose to use the df_combined data, which takes both the unemployment and inflation rate. I will generate a pivot table that calculates the means of the two index over the year.
+
+The next step is to calculate the mean of GDP growth rate and merge into the dataset.
+
+Then We generate a correlation matrix based on it.  Here we omit the missing data when calculating the mean, and we drop the rows with final outcome missing.
+
+```{r echo=FALSE}
+
+df_combined_pivot_un = aggregate(Unemployment_rate~Country,data=df_combined, FUN = mean)
+df_combined_pivot_in = aggregate(Inflation_rate~Country,data=df_combined, FUN = mean)
+df_combined_pivot = merge(df_combined_pivot_un, df_combined_pivot_in, by="Country")
+
+
+df_gdp_20 = df_gdp[,c(1,32:51)]
+df_gdp_20$mean = rowMeans(df_gdp_20[,c(2:21)],na.rm = TRUE)
+df_gdp_mean = df_gdp_20[complete.cases(df_gdp_20[,21]),][,c(1,22)]
+df_combined_pivot = merge(df_combined_pivot, df_gdp_mean, by="Country")
+rownames(df_combined_pivot) = df_combined_pivot$Country
+df_combined_pivot = df_combined_pivot[,c(2:4)]
+
+cor(df_combined_pivot)
+```
+
+## Analysis and Results
+
+#### 1. Clustering of economies based on the Phillips curve slope
+
+The outcome of the clustering can be seen in the gragh.
+
+```{r echo=FALSE, fig.width=80, fig.height=20}
+library("cluster")
+slope.dist = dist(df_slope)
+slope.hclust = hclust(slope.dist)
+
+plot(slope.hclust,labels=df_slope$Region,main='Default from hclust')
+```
+
+It is a bit hard to tell because there are too many countries on the x-axis.  However, we can make some primary judgement based on the clustering.
+
+One distinction is that western countries are on the left side of the spectrum, while east Asian, southeast Asians, and Russia are mainly on the right.  The clustering supports the conclusions drawn in the part a analysis.
+
+
+#### 2. Unemployment trends across countries
+
+
+```{r echo=FALSE}
+library(ggplot2)
+
+p1 = ggplot(df_combined_subset, aes(y=Unemployment_rate, x=Year, color=Country)) + geom_line() 
+print(p1)
+```
+
+We can see from the line plots that there seems to be a general pattern.  For example, there is a dip in unemployment around year 2008 for most of the world.
+
+In terms of trends, we can see that Europe is experiencing soaring unemployment rate right now, indicating a not so promising economic prospective.  On the other hand the central Europe sees a bouncing trend.  It went up and down over the years.  South Asia appear to be the region with the best labor market outlook, with low unemployment over the past 20 years.
+
+On the overall level, the line for 'world' is relatively steady.  
+
+#### 3. Standard deviations in the GDP incremental rate
+
+```{r echo=FALSE}
+p2_high = ggplot(df_gdp_sd_highest, aes(x=Country,y=SD)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+print(p2_high)
+
+p2_low = ggplot(df_gdp_sd_lowest, aes(x=Country,y=SD)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+print(p2_low)
+```
+From the bar charts we can see which countries have the lowest and highest standard deviations.  The highest one is Equatorial Guinea, with sd > 25.  Following are Liberia, Libya, and countries like Iraq and Lebanon.  These are the countries that went through social or political turmoil during the last twenty years.  It is natural that they experienced unstable growth.
+
+On the other hand, the regions with the lowest standard deviation are Guam, South Africa, and Pakistan.  It is intriguing that none of the countries with high GDP or low are on the list.  The list consists of middle ranged regions.  It indicates that these countries have been developiong steadily over the past 20 years.
+
+#### 4. Correlations between unemployment, inflation rate, and GDP growth
+
+```{r echo=FALSE}
+library(corrplot)
+M <- cor(df_combined_pivot)
+corrplot(M, method="color")
+```
+
+From the correlation matrix, as well as the heatmap, we can see that on an average level there are no correlation between unemployment rate and inflation rate.  It means that the two have an inverse relationship over the years and may exhibit a lag effect, but overall there are no intrinsic underlying relations.
+
+GDP growth and inflation rate has the largest correlation of the three pairs.  At around -0.2, it shows that the two are inversely correlated on an overall level.  It may indicate that a higher growth would lead to lower inflation rate, or to put it around, a stable price level is essential for economic development.
